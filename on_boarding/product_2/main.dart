@@ -83,7 +83,7 @@ class ProductManager {
     }
 
     _products.removeAt(index);
-    print('🗑️ Product deleted successfully!\n');
+    print('Product deleted successfully!\n');
   }
 
   int get productCount => _products.length;
