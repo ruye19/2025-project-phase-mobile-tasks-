@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'Add_page.dart';
 import 'detail_page.dart';
+import 'search_product.dart';
 
 void main() {
   runApp(const MyApp());
@@ -124,7 +125,13 @@ class _homePageState extends State<homePage> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey, width: 1),
                       ),
-                      child: Icon(Icons.search),
+                      child: GestureDetector(
+                        onTap: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchProduct()));
+                        },
+                        child: Icon(Icons.search)
+                        ),
+                      
                     ),
                   ),
                 ],
