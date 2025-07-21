@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Add_page.dart';
+import 'detail_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -132,9 +133,7 @@ class _homePageState extends State<homePage> {
               // the product card is coded here
               GestureDetector(
                 onTap: (){
-                  // Handle product tap
-                  debugPrint("Product tapped");
-                  //go to detail page 
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => const detailPage()));
                 },
                 child: Container(
                   margin: const EdgeInsets.only(right:14.0,top: 12.0),
@@ -216,9 +215,8 @@ class _homePageState extends State<homePage> {
               // the product card is coded here
               GestureDetector(
                 onTap: (){
-                  // Handle product tap
-                  // print("Product tapped");
-                  //go to detail page 
+                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const detailPage()));
+
                 },
                 child: Container(
                   margin: const EdgeInsets.only(right:14.0,top: 12.0),
@@ -300,9 +298,8 @@ class _homePageState extends State<homePage> {
                // the product card is coded here
               GestureDetector(
                 onTap: (){
-                  // Handle product tap
-                  // print("Product tapped");
-                  //go to detail page 
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const detailPage()));
+ 
                 },
                 child: Container(
                   margin: const EdgeInsets.only(right:14.0,top: 12.0),
