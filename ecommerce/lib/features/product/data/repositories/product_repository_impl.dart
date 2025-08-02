@@ -1,9 +1,8 @@
+import 'package:ecommerce/core/network/network_info.dart';
 import 'package:ecommerce/features/product/domain/entities/product.dart';
 import 'package:ecommerce/features/product/domain/repositories/product_repository.dart';
-import '../../../../core/network/network_info.dart';
-import '../datasources/local_data_source.dart';
-import '../datasources/remote_data_source.dart';
-import '../models/product_model.dart';
+import 'package:ecommerce/features/product/data/datasources/local_data_source.dart';
+import 'package:ecommerce/features/product/data/datasources/remote_data_source.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
   final ProductRemoteDataSource remoteDataSource;
@@ -19,60 +18,72 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<List<Product>> getAllProducts() async {
     if (await networkInfo.isConnected) {
-      final remoteProducts = await remoteDataSource.fetchProducts();
-      await localDataSource.cacheProducts(remoteProducts);
-      return remoteProducts;
+      try {
+        final remoteProducts = await remoteDataSource.fetchProducts();
+        await localDataSource.cacheProducts(remoteProducts);
+        return remoteProducts;
+      } catch (e) {
+        throw Exception('Failed to fetch products from remote: $e');
+      }
     } else {
-      return await localDataSource.getCachedProducts();
+      final cachedProducts = await localDataSource.getCachedProducts();
+      if (cachedProducts.isEmpty) {
+        throw Exception('No internet and no cached data available');
+      }
+      return cachedProducts;
     }
   }
 
   @override
   Future<Product> getProductById(String id) async {
     if (await networkInfo.isConnected) {
-      return await remoteDataSource.fetchProductById(id);
+      try {
+        return await remoteDataSource.fetchProductById(id);
+      } catch (e) {
+        throw Exception('Failed to fetch product from remote: $e');
+      }
     } else {
       final cachedProducts = await localDataSource.getCachedProducts();
-      return cachedProducts.firstWhere((p) => p.id == id);
+      try {
+        return cachedProducts.firstWhere((p) => p.id == id);
+      } catch (_) {
+        throw Exception('Product not found in cache.');
+      }
     }
   }
 
   @override
   Future<void> createProduct(Product product) async {
-    final productModel = ProductModel(
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      imageUrl: product.imageUrl,
-      price: product.price,
-    );
-
     if (await networkInfo.isConnected) {
-      await remoteDataSource.createProduct(productModel);
+      try {
+        await remoteDataSource.createProduct(product as dynamic);
+      } catch (e) {
+        throw Exception('Failed to create product remotely: $e');
+      }
     }
-    await localDataSource.createProduct(productModel);
+    await localDataSource.createProduct(product as dynamic);
   }
 
   @override
   Future<void> updateProduct(Product product) async {
-    final productModel = ProductModel(
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      imageUrl: product.imageUrl,
-      price: product.price,
-    );
-
     if (await networkInfo.isConnected) {
-      await remoteDataSource.updateProduct(productModel);
+      try {
+        await remoteDataSource.updateProduct(product as dynamic);
+      } catch (e) {
+        throw Exception('Failed to update product remotely: $e');
+      }
     }
-    await localDataSource.updateProduct(productModel);
+    await localDataSource.updateProduct(product as dynamic);
   }
 
   @override
   Future<void> deleteProduct(String id) async {
     if (await networkInfo.isConnected) {
-      await remoteDataSource.deleteProduct(id);
+      try {
+        await remoteDataSource.deleteProduct(id);
+      } catch (e) {
+        throw Exception('Failed to delete product remotely: $e');
+      }
     }
     await localDataSource.deleteProduct(id);
   }
