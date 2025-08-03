@@ -6,6 +6,10 @@ import 'package:ecommerce/features/product/data/models/product_model.dart';
 // import '../../../../../mocks.mocks.dart';
 import '../../../../mocks.mocks.dart';
 
+// Ensure your mock class extends or implements the correct type
+// Example (in your mocks.mocks.dart):
+// class MockProductRemoteDataSource extends Mock implements ProductRemoteDataSource {}
+
 void main() {
   late ProductRepositoryImpl repository;
   late MockProductRemoteDataSource mockRemoteDataSource;
