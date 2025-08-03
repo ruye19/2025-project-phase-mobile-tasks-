@@ -21,7 +21,7 @@ class ProductRepositoryImpl implements ProductRepository {
       try {
         final remoteProducts = await remoteDataSource.fetchProducts();
         await localDataSource.cacheProducts(remoteProducts);
-        return remoteProducts;
+        return remoteProducts.map((model) => model as Product).toList();
       } catch (e) {
         throw Exception('Failed to fetch products from remote: $e');
       }
@@ -30,7 +30,7 @@ class ProductRepositoryImpl implements ProductRepository {
       if (cachedProducts.isEmpty) {
         throw Exception('No internet and no cached data available');
       }
-      return cachedProducts;
+      return cachedProducts.map((model) => model as Product).toList();
     }
   }
 
@@ -38,14 +38,16 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<Product> getProductById(String id) async {
     if (await networkInfo.isConnected) {
       try {
-        return await remoteDataSource.fetchProductById(id);
+        final productModel = await remoteDataSource.fetchProductById(id);
+        return productModel as Product;
       } catch (e) {
         throw Exception('Failed to fetch product from remote: $e');
       }
     } else {
       final cachedProducts = await localDataSource.getCachedProducts();
       try {
-        return cachedProducts.firstWhere((p) => p.id == id);
+        final productModel = cachedProducts.firstWhere((p) => p.id == id);
+        return productModel as Product;
       } catch (_) {
         throw Exception('Product not found in cache.');
       }
