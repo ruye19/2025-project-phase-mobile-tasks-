@@ -19,5 +19,5 @@ class UpdateProduct implements UseCase<Product, UpdateProductParams> {
 class UpdateProductParams {
   final Product product;
 
-  const UpdateProductParams(this.product);
+  const UpdateProductParams(this.product, {required int id});
 }
