@@ -1,199 +1,67 @@
-import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-// ignore: depend_on_referenced_packages
-import 'package:bloc/bloc.dart';
-import 'package:equatable/equatable.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../../../core/error/failures.dart';
+import '../../../../../core/usecase.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/usecases/get_current_user.dart';
-import '../../../domain/usecases/is_logged_in.dart';
+import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/usecases/login.dart';
 import '../../../domain/usecases/logout.dart';
-import '../../../domain/usecases/register.dart';
+import '../../../domain/usecases/signup.dart';
+import 'auth_event.dart';
 import 'auth_state.dart';
 
-part 'auth_event.dart';
-part 'auth_state.dart';
-
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  static const String _tokenKey = 'auth_token';
-  final SharedPreferences prefs;
-  final http.Client httpClient;
-  final LoginUseCase loginUseCase;
-  final RegisterUseCase registerUseCase;
-  final LogoutUseCase logoutUseCase;
-  final GetCurrentUserUseCase getCurrentUserUseCase;
-  final IsLoggedInUseCase isLoggedInUseCase;
+  final Login login;
+  final Signup signup;
+  final Logout logout;
+  final AuthRepository authRepository;
 
   AuthBloc({
-    required this.prefs,
-    required this.httpClient,
-    required this.loginUseCase,
-    required this.registerUseCase,
-    required this.logoutUseCase,
-    required this.getCurrentUserUseCase,
-    required this.isLoggedInUseCase,
-  }) : super(AuthInitial()) {
-    on<LoginEvent>(_onLogin);
-    on<RegisterEvent>(_onRegister);
-    on<LogoutEvent>(_onLogout);
-    on<CheckAuthEvent>(_onCheckAuth);
-    on<AuthCheckRequested>(_onAuthCheckRequested);
-    on<LoginRequested>(_onLoginRequested);
-    on<RegisterRequested>(_onRegisterRequested);
-    on<LogoutRequested>(_onLogoutRequested);
-    on<ResetAuthState>(_onResetAuthState);
+    required this.login,
+    required this.signup,
+    required this.logout,
+    required this.authRepository,
+  }) : super(const AuthState()) {
+    on<AuthCheckRequested>(_onCheck);
+    on<AuthLoginRequested>(_onLogin);
+    on<AuthSignupRequested>(_onSignup);
+    on<AuthLogoutRequested>(_onLogout);
   }
 
-  Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    final result = await loginUseCase(event.email, event.password);
-    
+  Future<void> _onCheck(AuthCheckRequested event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    final result = await authRepository.getCachedUser();
     result.fold(
-      (failure) => emit(AuthError(_mapFailureToMessage(failure))),
-      (user) => emit(Authenticated(user)),
+      (l) => emit(state.copyWith(isLoading: false, user: null, errorMessage: null)),
+      (user) => emit(state.copyWith(isLoading: false, user: user, errorMessage: null)),
     );
   }
 
-  Future<void> _onRegister(RegisterEvent event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    final result = await registerUseCase(
-      event.name,
-      event.email,
-      event.password,
-    );
-
+  Future<void> _onLogin(AuthLoginRequested event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    final result = await login(LoginParams(email: event.email, password: event.password));
     result.fold(
-      (failure) => emit(AuthError(_mapFailureToMessage(failure))),
-      (user) => emit(Authenticated(user)),
+      (l) => emit(state.copyWith(isLoading: false, errorMessage: l.message)),
+      (user) => emit(state.copyWith(isLoading: false, user: user)),
     );
   }
 
-  Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    final result = await logoutUseCase();
-    
+  Future<void> _onSignup(AuthSignupRequested event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    final result = await signup(SignupParams(name: event.name, email: event.email, password: event.password));
     result.fold(
-      (failure) => emit(AuthError(_mapFailureToMessage(failure))),
-      (_) => emit(Unauthenticated()),
+      (l) => emit(state.copyWith(isLoading: false, errorMessage: l.message)),
+      (user) => emit(state.copyWith(isLoading: false, user: user)),
     );
   }
 
-  Future<void> _onCheckAuth(CheckAuthEvent event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    final isLoggedIn = await isLoggedInUseCase();
-    
-    if (!isLoggedIn) {
-      emit(Unauthenticated());
-      return;
-    }
-
-    final result = await getCurrentUserUseCase();
+  Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    final result = await logout(NoParams());
     result.fold(
-      (failure) => emit(Unauthenticated()),
-      (user) => emit(Authenticated(user)),
+      (l) => emit(state.copyWith(isLoading: false, errorMessage: l.message)),
+      (_) => emit(const AuthState(isLoading: false, user: null)),
     );
-  }
-
-  Future<void> _onAuthCheckRequested(
-    AuthCheckRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    
-    final isLoggedIn = await isLoggedInUseCase();
-    if (!isLoggedIn) {
-      emit(Unauthenticated());
-      return;
-    }
-
-    final result = await getCurrentUserUseCase();
-    await result.fold(
-      (failure) async {
-        emit(Unauthenticated());
-      },
-      (user) async {
-        emit(Authenticated(user));
-      },
-    );
-  }
-
-  Future<void> _onLoginRequested(
-    LoginRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    final result = await loginUseCase(event.email, event.password);
-    
-    result.fold(
-      (failure) {
-        emit(AuthError(_mapFailureToMessage(failure)));
-      },
-      (user) {
-        emit(Authenticated(user));
-        emit(const AuthSuccess('Login successful'));
-      },
-    );
-  }
-
-  Future<void> _onRegisterRequested(
-    RegisterRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    final result = await registerUseCase(
-      event.name,
-      event.email,
-      event.password,
-    );
-
-    result.fold(
-      (failure) {
-        emit(AuthError(_mapFailureToMessage(failure)));
-      },
-      (user) {
-        emit(Authenticated(user));
-        emit(const AuthSuccess('Registration successful'));
-      },
-    );
-  }
-
-  Future<void> _onLogoutRequested(
-    LogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    final result = await logoutUseCase();
-    
-    result.fold(
-      (failure) {
-        emit(AuthError(_mapFailureToMessage(failure)));
-      },
-      (_) {
-        emit(Unauthenticated());
-      },
-    );
-  }
-
-  void _onResetAuthState(
-    ResetAuthState event,
-    Emitter<AuthState> emit,
-  ) {
-    emit(AuthInitial());
-  }
-
-  String _mapFailureToMessage(Failure failure) {
-    switch (failure.runtimeType) {
-      case const (ServerFailure):
-        return (failure as ServerFailure).message;
-      case const (CacheFailure):
-        return (failure as CacheFailure).message;
-      case const (NetworkFailure):
-        return (failure as NetworkFailure).message;
-      default:
-        return 'An unexpected error occurred';
-    }
   }
 }
+
+

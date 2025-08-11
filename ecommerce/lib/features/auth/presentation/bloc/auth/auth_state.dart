@@ -1,43 +1,24 @@
 import 'package:equatable/equatable.dart';
+
 import '../../../domain/entities/user.dart';
 
-abstract class AuthState extends Equatable {
-  const AuthState();
-  
-  @override
-  List<Object?> get props => [];
-}
+class AuthState extends Equatable {
+  final bool isLoading;
+  final User? user;
+  final String? errorMessage;
 
-class AuthInitial extends AuthState {}
+  const AuthState({this.isLoading = false, this.user, this.errorMessage});
 
-class AuthLoading extends AuthState {}
-
-class Authenticated extends AuthState {
-  final User user;
-  final String token;
-  
-  const Authenticated(this.user, this.token);
-  
-  @override
-  List<Object> get props => [user, token];
-}
-
-class Unauthenticated extends AuthState {}
-
-class AuthError extends AuthState {
-  final String message;
-  
-  const AuthError(this.message);
-  
-  @override
-  List<Object> get props => [message];
-}
-
-class AuthSuccess extends AuthState {
-  final String message;
-
-  const AuthSuccess(this.message);
+  AuthState copyWith({bool? isLoading, User? user, String? errorMessage}) {
+    return AuthState(
+      isLoading: isLoading ?? this.isLoading,
+      user: user ?? this.user,
+      errorMessage: errorMessage,
+    );
+  }
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [isLoading, user, errorMessage];
 }
+
+

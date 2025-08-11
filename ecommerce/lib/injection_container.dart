@@ -8,6 +8,17 @@ import 'features/product/data/data_sources/local/local_data_source.dart';
 import 'features/product/data/data_sources/local/local_data_source_impl.dart';
 import 'features/product/data/data_sources/remote/remote_data_source.dart';
 import 'features/product/data/data_sources/remote/remote_data_source_impl.dart';
+// Auth feature imports
+import 'features/auth/data/data_sources/local/auth_local_data_source.dart';
+import 'features/auth/data/data_sources/local/auth_local_data_source_impl.dart';
+import 'features/auth/data/data_sources/remote/auth_remote_data_source.dart';
+import 'features/auth/data/data_sources/remote/auth_remote_data_source_impl.dart';
+import 'features/auth/data/repositories/auth_repository_impl.dart';
+import 'features/auth/domain/repositories/auth_repository.dart';
+import 'features/auth/domain/usecases/login.dart';
+import 'features/auth/domain/usecases/logout.dart';
+import 'features/auth/domain/usecases/signup.dart';
+import 'features/auth/presentation/bloc/auth/auth_bloc.dart';
 import 'features/product/data/repositories/product_repository_impl.dart';
 import 'features/product/domain/repositories/product_repository.dart';
 import 'features/product/domain/usecases/create_product.dart';
@@ -45,8 +56,36 @@ Future<void> init() async {
   // Data
   serviceLocator.registerLazySingleton<ProductLocalDataSource>(
       () => ProductLocalDataSourceImpl(sharedPreferences: serviceLocator()));
-  serviceLocator.registerLazySingleton<ProductRemoteDataSource>(
-      () => ProductRemoteDataSourceImpl(client: serviceLocator()));
+  serviceLocator.registerLazySingleton<ProductRemoteDataSource>(() =>
+      ProductRemoteDataSourceImpl(
+          client: serviceLocator(), sharedPreferences: serviceLocator()));
+  //! Feature_#2 (Auth) --------------------------------------------------------
+
+  // Bloc
+  serviceLocator.registerFactory(() => AuthBloc(
+        login: serviceLocator(),
+        signup: serviceLocator(),
+        logout: serviceLocator(),
+        authRepository: serviceLocator(),
+      ));
+
+  // Use cases
+  serviceLocator.registerLazySingleton(() => Login(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => Signup(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => Logout(serviceLocator()));
+
+  // Repository
+  serviceLocator.registerLazySingleton<AuthRepository>(() =>
+      AuthRepositoryImpl(
+          networkInfo: serviceLocator(),
+          remoteDataSource: serviceLocator(),
+          localDataSource: serviceLocator()));
+
+  // Data
+  serviceLocator.registerLazySingleton<AuthLocalDataSource>(() =>
+      AuthLocalDataSourceImpl(sharedPreferences: serviceLocator()));
+  serviceLocator.registerLazySingleton<AuthRemoteDataSource>(
+      () => AuthRemoteDataSourceImpl(client: serviceLocator()));
 
   //! Core ---------------------------------------------------------------------
   serviceLocator.registerLazySingleton<NetworkInfo>(

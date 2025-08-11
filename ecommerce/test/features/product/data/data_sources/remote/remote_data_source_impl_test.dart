@@ -42,7 +42,7 @@ void main() {
   const tProducts = [tProduct1, tProduct2];
 
   final tProductsFixture =
-      jsonEncode({'data': jsonDecode(fixture('product_list.json'))});
+      jsonEncode({'data': jsonDecode(fixture("product_list.json"))});
   final tProduct1Fixture =
       jsonEncode({'data': jsonDecode(fixture('product.json'))});
   print(tProduct1Fixture);

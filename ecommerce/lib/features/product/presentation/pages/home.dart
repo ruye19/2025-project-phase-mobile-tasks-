@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/presentation/routes/routes.dart';
+import '../../../auth/presentation/bloc/auth/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth/auth_event.dart';
 
 import '../../../../core/presentation/widgets/snackbar.dart';
 import '../bloc/product/product_bloc.dart';
+import '../../../auth/presentation/bloc/auth/auth_state.dart';
 import '../widgets/widgets.dart';
 
 class HomePage extends StatelessWidget {
@@ -26,7 +29,12 @@ class HomePage extends StatelessWidget {
             child: Column(
               children: [
                 // Header
-                const UserHeader(userName: 'John'),
+                BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, authState) {
+                    final name = authState.user?.name ?? 'Guest';
+                    return UserHeader(userName: name);
+                  },
+                ),
                 const SizedBox(height: 20),
 
                 // Title
@@ -35,14 +43,25 @@ class HomePage extends StatelessWidget {
                   children: [
                     Text('Available Products',
                         style: Theme.of(context).textTheme.titleLarge),
-                    IconButton(
-                      onPressed: () {},
-                      icon: Icon(
-                        Icons.search,
-                        color: Theme.of(context).disabledColor,
+                    Row(children: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: Icon(
+                          Icons.search,
+                          color: Theme.of(context).disabledColor,
+                        ),
+                        iconSize: 20,
                       ),
-                      iconSize: 20,
-                    ),
+                      IconButton(
+                        tooltip: 'Logout',
+                        onPressed: () {
+                          context.read<AuthBloc>().add(AuthLogoutRequested());
+                          context.go(Routes.signIn);
+                        },
+                        icon: const Icon(Icons.logout),
+                        iconSize: 20,
+                      ),
+                    ])
                   ],
                 ),
 
